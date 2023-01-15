@@ -1,0 +1,2 @@
+"0","sales <-transform(sales,DynamicfMonth=ifelse(Dynamic == 1, fMonth, 0))"
+"0","sales$DynamicfMonth <- as.factor(sales$DynamicfMonth)"

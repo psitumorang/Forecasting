@@ -1,0 +1,6 @@
+"0","ggplot(data=dat, aes(Time, logSales)) +"
+"0","theme_minimal() +"
+"0","geom_line(color = ""#FC4E07"", size = .6) +"
+"0","geom_rect(data=rects, inherit.aes=FALSE, aes(xmin=start, xmax=end, ymin=min(dat$logSales),"
+"0","ymax=max(dat$logSales), group=group), color=""transparent"", fill=""orange"", alpha=0.3) +"
+"0","labs(title = ""Log Sales"", subtitle = ""(Contraction period highlighted in Orange)"") "

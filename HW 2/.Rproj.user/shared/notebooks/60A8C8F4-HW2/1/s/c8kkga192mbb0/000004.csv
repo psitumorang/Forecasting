@@ -1,0 +1,1 @@
+"0","model10 <-lm(logSales~Time+I(Time^2)+I(Time^3)+I(Time^4)+I(Time^5)+I(Time^6)+fMonth+obs203+c348+s348+Dynamic+Dynamic*fMonth+lag1resid+lag2resid, data = sales)"

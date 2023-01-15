@@ -1,0 +1,3 @@
+"0","ARMA33.all<-Arima(pctchange.ts.all,order=c(3,0,3), xreg=outliers)"
+"0","MA4.all<-Arima(pctchange.ts.all,order=c(0,0,4), xreg=outliers)"
+"0","AR2.all<-Arima(pctchange.ts.all,order=c(2,0,0), xreg=outliers)"

@@ -1,0 +1,2 @@
+"0","res3 <- resid(model3)"
+"0","plot(ts(res3))"

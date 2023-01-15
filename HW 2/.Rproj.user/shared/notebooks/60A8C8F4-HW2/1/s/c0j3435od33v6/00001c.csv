@@ -1,0 +1,8 @@
+"0","ggplot(seas_df1, aes(x = month)) + "
+"0","  geom_line(aes(y = seas_ind_part_3, color = 'Part 3 Indices'), size =.6, , linetype=""dashed"") +"
+"0","  geom_line(aes(y = seas_ind_1992_2010, color = '1992-2010'), size = .8) + "
+"0","  geom_line(aes(y = seas_ind_2011_2019, color = '2011-2019'), size =.8) +"
+"0","  scale_x_continuous(breaks=1:12) +"
+"0","  ylab(""Seasonal Indices"")"
+"2","Don't know how to automatically pick scale for object of type ts. Defaulting to continuous.
+"

@@ -1,0 +1,4 @@
+"0","# add outlier obs203"
+"0","obs203<-rep(0, max(sales$Time))"
+"0","obs203[203] <- 1"
+"0","sales<-data.frame(sales,obs203)"

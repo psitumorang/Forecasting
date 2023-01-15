@@ -1,0 +1,8 @@
+"0","ggplot(data=dat, aes(Time, logImports)) +"
+"0","theme_minimal() +"
+"0","geom_line(color = ""#FC4E07"", size = .5) +"
+"0","geom_rect(data=rects, inherit.aes=FALSE, aes(xmin=start, xmax=end, ymin=min(dat$logImports),"
+"0","ymax=max(dat$logImports), group=group), color=""transparent"", fill=""orange"", "
+"0","alpha=0.3) +"
+"0","labs(title = ""Monthly U.S. LOG Imports from China (in millions of "
+"0","dollars)"", subtitle = ""(From 1989 to 2019 - Contraction period highlighted in Orange)"") "

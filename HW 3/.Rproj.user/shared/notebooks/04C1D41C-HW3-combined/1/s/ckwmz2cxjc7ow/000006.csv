@@ -1,0 +1,1 @@
+"0","plot(ts(res6), xlab=""time"",ylab=""residuals"",main=""Residuals of Model 6"")"

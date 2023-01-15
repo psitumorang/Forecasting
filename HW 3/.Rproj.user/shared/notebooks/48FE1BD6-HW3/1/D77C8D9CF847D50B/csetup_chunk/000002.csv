@@ -1,0 +1,7 @@
+"0","setwd(""C:/Users/phili/Desktop/STAT 535/HW 3"")"
+"0","knitr::opts_knit$set(root.dir = ""C:/Users/phili/Desktop/STAT 535/HW 3"")"
+"0","# Package setup"
+"0","if(!require(""pacman"")) install.packages(""pacman"")"
+"2","Loading required package: pacman
+"
+"0","pacman::p_load(car, here, tidyverse, dplyr, ggplot2, data.table, lubridate, glmnet, kableExtra, stargazer)"

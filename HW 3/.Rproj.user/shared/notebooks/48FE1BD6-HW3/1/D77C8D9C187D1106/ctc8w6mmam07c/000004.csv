@@ -1,0 +1,2 @@
+"0","resid5 <- ts(res5) #,start=c(1992,1),freq=12)"
+"0","plot(resid5, xlab=""time"",ylab=""residuals"",main=""Residuals of Model 5"")"

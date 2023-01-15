@@ -1,0 +1,120 @@
+---
+title: "stat435-hw5"
+author: "Ethan"
+date: "5/1/2022"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(lmtest)
+library(hwwntest)
+library(fGarch)
+```
+
+
+```{r}
+pge <- read_csv("/Users/ethan/Documents/R/stat435/PGEmonthly9821.txt")
+attach(pge)
+```
+
+# Question 1
+
+```{r}
+ret.ts <- ts(pge$Return, frequency = 12, start=c(1998,1))
+plot(ret.ts)
+plot(ret.ts^2)
+
+```
+
+A glance of the monthly returns for PG&E stock shows that there are two periods of increased volatility, first from 2000-2004 and second from 2018-2020. Plotting the time series of squared returns (so that all variance is seen next to each other) lays even more clearly this pattern in the data. The volatility in the second period is *even greater* than the volatility in the first period. Why do the returns for PG&E exhibit this truly marked heteroskedasticity over time?
+
+In 2017 and 2018, California suffered a wave of deadly fires which killed more than 100 people. The majority of the victims were killed in the Camp fire, which completely destroyed the town of Paradise, California. Investigations revealed that PG&E's utility grid was responsible for these fires. In order to reduce the risk of fires in the future, PG&E resorted to massive blackouts during peak fire season. However, this only further angered customers and investors. PG&E soon found itself facing tens of billions of dollars in fire damage liabilities, 
+
+Against the wishes of many investors, PG&E began filing for bankruptcy in 2019, an unusual phenomenon for a highly-regulated public utilities company. PG&E's parent company, PG&E Corporation, subsequently began filing for protection from this bankruptcy. 
+
+Starting in June 2019, PG&E began to mete out damages/liabilities payments to its various stakeholders. First, it settled for `$`1 billion with state and local governments. Subsequently, PG&E settled with insurance companies and hedge funds for `$`11 billion. Representatives for wildfire victims claimed that PG&E owed over `$`50 billion in compensation, but PG&E settled with them for substantially less, at only `$`13.5 billion. This compensation for the wildfire victims covered the liability for its responsibility originating from the Camp Fire, Tubbs Fire, Butte Fire, Ghost Ship warehouse fire, and a series of wildfires in October, 2017 collectively called the 2017 North Bay Fires.
+
+The constant financial instability, coupled with the massive bankruptcy restructuring of PG&E, led to the extremely high volatility observed in 2019. A few months later in 2020, the Covid-19 pandemic brought even more uncertainty into the value of PG&E stock, increasing volatility even further. As the settlements to the victims of the fires were to be paid in cash and cash obtained from liquidated stock, PG&E agreed to increase the amount of stock liquidated to pay fire victims in June, 2020 amid the sharp devaluation of the stock. 
+
+On June 16th, 2020, PG&E pled guilty to 84 counts of involuntary manslaughter and paid an additional `$`3.5 million in damages. This settlement ended all charges against PG&E. On July 1, PG&E funded the Fire Victim Trust (FVT) with `$`5.4 billion cash and 22.19% of stock in the reorganized PG&E. PG&E was scheduled to finalize its payments of the settlements in January 2021 and January 2022, finalizing this saga of innocent victims and bankruptcy (we most sincerely hope).
+
+# Question 2
+
+```{r}
+# Look at data to determine ARMA fit
+acf(ret.ts)
+pacf(ret.ts)
+
+# Construct ARMA fit
+arma1 <- arima(ret.ts,order=c(5,0,0),seasonal=list(order=c(1,0,0),period=12))
+coeftest(arma1)
+```
+
+We see from the pacf and acf of the time series return data that there is significance at lags 5, 12 and 27. Choosing an AR(5) process will catch the fifth lag, setting the seasonality to 12 periods will catch the even more significant 12th lag, and the marginally significant 27th lag we will just ignore. It is long in the past and a bit hard to explain, so we will focus our analysis on the two more recent lags and choose an $\text{ARMA}(5,0,0)(0,0,1)_{12}$ model. 
+
+```{r}
+# residual analysis
+residarma1 <- resid(arma1)
+plot(residarma1)
+qqnorm(residarma1)
+qqline(residarma1)
+shapiro.test(residarma1)
+bartlettB.test(residarma1)
+
+acf(residarma1,40)
+pacf(residarma1,40)
+
+# square the residuals
+u2.ts <- ts(residarma1)^2
+acf(u2.ts)
+pacf(u2.ts)
+```
+The time series plot of the residuals confirm that there is an enormous amount of heteroskedasticity in the data. For that reason, we will use a GARCH process to model the variances. There don't appear to be many significant lags in the acf and pacf (before squaring the residuals), but the normal qq plot shows that the residuals are not at all distributed normally. The residual distribution has very fat tails.
+
+The ACF and PACF of the squared residuals indicate that there is a lot of structure which should be modeled. As the simple time series plot (of both the data and the residuals) shows there is a tremendous amount of heteroskedasticity in the data, I will utilize a GARCH(1,1) process to model the structure of these residuals. 
+
+```{r}
+# Construct GARCH model
+garch.ret <- garchFit(~garch(1,1),data=ts(residarma1))
+garch.ret
+
+
+residsstdzd <- residuals(garch.ret,standardize=TRUE)
+residsstdzd.ts <- ts(residsstdzd,frequency=12,start=c(1998,1))
+
+# with outlier
+plot(residsstdzd.ts,type='l')
+kurtosis(residsstdzd)
+acf(residsstdzd.ts)
+pacf(residsstdzd.ts)
+qqnorm(residsstdzd.ts)
+qqline(residsstdzd.ts)
+spectrum(residsstdzd.ts)
+bartlettB.test(residsstdzd.ts)
+
+# without outlier
+residsstdzd_no_outlier <- c(residsstdzd[1:250],residsstdzd[252:288])
+plot(residsstdzd_no_outlier,type='l')
+kurtosis(residsstdzd_no_outlier)
+acf(residsstdzd_no_outlier)
+pacf(residsstdzd_no_outlier)
+qqnorm(residsstdzd_no_outlier)
+qqline(residsstdzd_no_outlier)
+spectrum(residsstdzd_no_outlier)
+bartlettB.test(residsstdzd_no_outlier)
+```
+
+The sum of alpha1 and beta1 *almost* sum to one, yet their sum is still just barely less than one. For this reason, we can conclude that the GARCH fit is a valid model. Moreover, omega is not only close to zero, it is closer to zero than alpha1 and beta1 by an order of magnitude of 3. This shows that the variance depends *almost entirely* on the previous data in the model. Moreover, considering that beta1 is over four times greater than alpha1, we can conclude that the volatility of the PG&E returns at time t is determined more by the volatility of the returns at time t-1 than by the residuals of an ARMA fit. However, the previous model residuals are still very relevant in modeling the trend. Both alpha1 and beta1 are significant at the 0.001 level, so the GARCH model suggests that they are very relevant in our analysis of the variance trend. The omega value, though, is also significant, so we conclude there should be a constant term in our formulation of the variance process. 
+
+A residual analysis shows that the GARCH(1,1) model had a phenomenal fit of the data. The metrics for the residuals show that the residuals really have been reduced to white noise. There are practically no significant lag correlations in the acf or pacf, the periodogram shows virtually no significance and the p-value of the Bartlett test is 0.71. For all intents and purposes, the residuals have been reduced to white noise. 
+
+The only concerning data point about the residuals from the GARCH(1,1) model is the alarmingly high (excess) kurtosis. Excess kurtosis is calculated to be 7.3. However, this can be explained almost entirely by the single outlier in November of 2018, which is seen in the bottom left corner of the qq plot. Once the singular outlier is removed, the excess kurtosis falls to 0.65. This is an enormous improvement. 
+
+Removing the outlier is not necessary to reduce the residuals from the ARMA-GARCH process to white noise. In fact, after doing so, the Bartlett test and the Periodogram look slightly worse (although they still agree that the residuals are white noise). 
+
+
+
+
+

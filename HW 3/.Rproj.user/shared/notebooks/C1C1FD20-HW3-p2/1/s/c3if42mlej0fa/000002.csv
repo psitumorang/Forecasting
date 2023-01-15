@@ -1,0 +1,7 @@
+"0","consumption <- read.csv(""qconsumption2.txt"")"
+"0","attach(consumption)"
+"2","The following objects are masked from consumption (pos = 3):
+
+    Pctchange, Quarter
+
+"

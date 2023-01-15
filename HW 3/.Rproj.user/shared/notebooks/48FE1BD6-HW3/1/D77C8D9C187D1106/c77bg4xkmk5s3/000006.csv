@@ -1,0 +1,4 @@
+"0","ggplot(data=m.sales, aes(Time, logmsales)) +"
+"0","theme_minimal() +"
+"0","geom_line(color = ""#FC4E07"", size = .6) +"
+"0","labs(title = ""Log Monthly Sales"", subtitle = ""Lydia Pinkham"") "

@@ -1,0 +1,3 @@
+"0","ggplot(seas_df, aes(x = month)) + "
+"0","  geom_line(aes(y = seas_indices, color = 'Seasonal Indices'), size = .8) + "
+"0","  geom_line(aes(y = seasdmult, color = 'Decompose Seasonal Indices'), size =.8)"

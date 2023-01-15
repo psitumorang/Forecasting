@@ -1,0 +1,28 @@
+"0","m.sales <- read.csv(""Lydiamonthly.txt"")"
+"0",""
+"0","Time <- seq(1, nrow(m.sales))"
+"0","fMonth<-as.factor(m.sales$month)"
+"0","logmsales <- log(m.sales$msales)"
+"0",""
+"0","m.sales<-data.frame(m.sales, Time, fMonth, logmsales)"
+"0",""
+"0","attach(m.sales)"
+"2","The following objects are masked _by_ .GlobalEnv:
+
+    fMonth, logmsales, Time
+
+"
+"2","The following objects are masked from m.sales (pos = 7):
+
+    c220, c348, c432, dec44, feb44, fMonth, jan45, logmsales, madv, madvl1,
+    madvl2, madvl3, madvl4, month, msales, msalesl1, msalesl2, msalesl3,
+    msalesl4, s220, s348, s432, sep45, Time, yrmon
+
+"
+"2","The following objects are masked from m.sales (pos = 8):
+
+    c220, c348, c432, dec44, feb44, fMonth, jan45, logmsales, madv, madvl1,
+    madvl2, madvl3, madvl4, month, msales, msalesl1, msalesl2, msalesl3,
+    msalesl4, s220, s348, s432, sep45, Time, yrmon
+
+"

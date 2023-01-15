@@ -1,0 +1,2 @@
+"0","# final model"
+"0","model8<-lm(logSales~Time+I(Time^2)+I(Time^3)+I(Time^4)+I(Time^5)+I(Time^6)+fMonth+obs203+c348+s348, data = sales);"

@@ -1,0 +1,2 @@
+"0","pctchange.ts.all<-ts(consumption$Pctchange)"
+"0","forecast::tsdisplay(pctchange.ts.all)"

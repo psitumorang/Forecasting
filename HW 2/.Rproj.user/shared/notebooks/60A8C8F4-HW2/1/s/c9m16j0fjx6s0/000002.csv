@@ -1,0 +1,3 @@
+"0","# Time 228 below represent the last month in 2010 (Dec 2010)"
+"0","Dynamic <- c(rep(0, 228), rep(1, nrow(sales) - 228))"
+"0","sales <- data.frame(sales, Dynamic) "

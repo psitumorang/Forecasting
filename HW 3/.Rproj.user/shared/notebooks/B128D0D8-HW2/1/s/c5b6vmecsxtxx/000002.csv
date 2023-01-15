@@ -1,0 +1,6 @@
+"0","sales<-read.csv(""UsedCarSales.txt"")"
+"0",""
+"0","Time <- seq(1, nrow(sales))"
+"0","fMonth<-as.factor(sales$Month)"
+"0",""
+"0","sales<-data.frame(sales, Time, fMonth)"

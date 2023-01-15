@@ -1,0 +1,2 @@
+"0","f <- file.choose(""ChinaImports2.txt"")"
+"0","imports <- read.csv(f)"

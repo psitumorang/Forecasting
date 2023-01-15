@@ -1,0 +1,2 @@
+"0","logSales.ts <- ts(sales$logSales)"
+"0","spectrum(logSales.ts, span=5)"

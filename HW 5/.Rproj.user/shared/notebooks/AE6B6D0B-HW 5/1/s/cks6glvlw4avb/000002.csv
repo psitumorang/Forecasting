@@ -1,0 +1,6 @@
+"0","checkresiduals(ts(resid(model1)))"
+"2","Warning in modeldf.default(object) :"
+"2","
+ "
+"2"," Could not find appropriate degrees of freedom for this model.
+"

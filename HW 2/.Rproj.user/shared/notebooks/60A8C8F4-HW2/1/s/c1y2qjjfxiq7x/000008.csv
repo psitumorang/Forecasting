@@ -1,0 +1,2 @@
+"0","res3 <- resid(model10)"
+"0","spectrum(res3, span=5)"

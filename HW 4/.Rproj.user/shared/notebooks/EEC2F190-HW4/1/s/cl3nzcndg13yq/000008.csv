@@ -1,0 +1,7 @@
+"0","# add differences column"
+"0","logImports_lst <- imports$logImports"
+"0","differences <- diff(logImports_lst,lag=1)"
+"0","imports$differences <- differences"
+"2","Error in `$<-.data.frame`(`*tmp*`, differences, value = c(0.0115943328000006,  : 
+  replacement has 371 rows, data has 372
+"

@@ -1,0 +1,474 @@
+---
+title: "HW3v2"
+output: html_document
+---
+
+```{r Setup, include=FALSE, results='hide', warning=FALSE}
+
+# Package setup
+if(!require("pacman")) install.packages("pacman")
+
+pacman::p_load(car, here, tidyverse, dplyr, ggplot2, data.table, lubridate, glmnet, kableExtra, stargazer, forecast, lmtest, hwwntest)
+```
+
+# Problem 2
+
+The file qconsumption2.txt contains quarterly data measuring U.S. Real Personal
+Consumption Expenditures percentage changes for the period 1953.1 to 2019.4. The data
+are seasonally adjusted.
+
+```{r}
+consumption <- read.csv("qconsumption2.txt")
+attach(consumption)
+```
+
+(a) Work with the data spanning the period 1953.1 to 2007.4.
+
+(i) Plot the data vs. time and discuss features of the plot. Give a list of the economic
+downturns as determined by the Business Cycle Dating Committee of NBER. Can you
+relate these recessions to movements in the plot?
+
+**Discussion:** Personal consumption expenditures percentage changes drop during recessions. Recession periods are highlighted in orange below and as we can see, percent changes consistently drops during recession periods. 
+
+Personal consumption expenditures percentage changes are mostly positive from 1953 to 2007, the only exception being negative percentage changes during most of the highlighted recession periods. This indicates that recession largely drives consumers to reduce their personal consumption expenditures.
+
+```{r}
+# we manually input the contraction periods from NBER. 
+cycle <- data.frame(from = c('1945-01-01','1948-10-01','1953-07-01','1957-07-01','1960-04-01','1970-01-01','1973-10-01','1980-01-01','1981-07-01','1990-07-01','2001-04-01','2008-01-01','2020-03-01'),
+                    to = c('1945-10-01','1949-10-01','1954-04-01','1958-04-01','1961-01-01','1970-10-01','1975-04-01','1980-07-01','1982-10-01','1991-04-01','2001-10-01','2009-07-01','2020-04-01'))
+```
+
+
+```{r}
+# we create a new column "rects" which signals 1 if it row corresponds to a "recession" period according to NEBR data
+
+lst <- rep(0, nrow(consumption))
+consumption$rects <-lst
+
+consumption<-transform(consumption,rects=ifelse(Quarter %in% cycle$from,1,rects))
+consumption<-transform(consumption,rects=ifelse(Quarter %in% cycle$to,2,rects))
+
+for (i in seq(2, nrow(consumption), by=1)) {
+  if (consumption$rects[i] == 0) {
+    if (consumption$rects[i-1] == 1) {
+       consumption$rects[i] <- 1
+    }
+  }
+}
+
+consumption<-transform(consumption,rects=ifelse(rects==2,1,rects))
+```
+
+```{r}
+consumption <- consumption %>% mutate(Time = 1:n())
+```
+```{r}
+# take the span of 1953.1 to 2007.4
+consumption.a <- consumption %>% slice(1:220)
+```
+
+```{r}
+set.seed(0)
+dat <- consumption.a
+
+## Determine highlighted regions
+v <- dat$rects
+
+## Get the start and end points for highlighted regions
+inds <- diff(c(0, v))
+#print(v)
+start <- dat$Time[inds == 1]
+end <- dat$Time[inds == -1]
+if (length(start) > length(end)) end <- c(end, tail(dat$Time, 1))
+
+## highlight region data
+rects <- data.frame(start=start, end=end, group=seq_along(start))
+
+ggplot(data=dat, aes(Time, Pctchange)) +
+theme_minimal() +
+geom_line(color = "#00AFBB", size = .5) +
+geom_rect(data=rects, inherit.aes=FALSE, aes(xmin=start, xmax=end, ymin=min(dat$Pctchange),
+ymax=max(dat$Pctchange), group=group), color="transparent", fill="orange", 
+alpha=0.3) +
+labs(title = "U.S. Real Personal
+Consumption Expenditures Percentage Changes (Quarterly)", subtitle = "(From 1953 to 2007 - Contraction period highlighted in Orange)") 
+```
+
+(ii) Begin by identifying outliers and form dummies for them. [Form the dummies to
+have length 220, so they cover the time span from 1953.1 to 2007.4.]
+
+```{r}
+jan58<-rep(0, nrow(consumption.a))
+oct65<-rep(0, nrow(consumption.a))
+oct74<-rep(0, nrow(consumption.a))
+apr80<-rep(0, nrow(consumption.a))
+
+jan58[21] <- 1
+oct65[52] <- 1
+oct74[88] <- 1
+apr80[110] <- 1
+
+consumption.a$jan58 <- jan58
+consumption.a$oct65 <- oct65
+consumption.a$oct74 <- oct74
+consumption.a$apr80 <- apr80
+```
+
+(iii) An ARX model has the form. Then R commands to
+fit such a model to the percentage changes, if the chosen order of the AR structure is p,
+are as follows:
+
+df<-data.frame(d1,d2)
+arxmodel<-arima(Pctchange.ts[1:220],order=c(p,0,0),xreg=df)
+
+Fit an ARX model to the data covering the period 1953.1 to 2007.4. Explain how you
+arrived at your model fit.
+
+**Discussion:** The initial ACF suggests MA(3) and PACF suggests AR(2) are good places to start.
+
+```{r}
+pctchange.ts<-ts(consumption.a$Pctchange)
+forecast::tsdisplay(pctchange.ts)
+```
+**Discussion:** We fit MA(3) and AR(2) models below, including the outliers. Both models show that white noise reduction was successfully achieved, however MA(3) has better/smaller AIC than AR(2) (AIC is 1009.97 for MA(3) and 1019.01 for AR(2)). Both models show that all four of the outlier variables are statistically significant.
+
+We next try an ARMA(2,3), and MA(4) and AR(3) for comparison.
+
+```{r}
+outliers<- consumption.a %>% select(jan58, oct65,oct74,apr80)
+outliers<- as.matrix(outliers)
+MA3<-Arima(pctchange.ts,order=c(0,0,3), xreg=outliers)
+AR2<-Arima(pctchange.ts,order=c(2,0,0), xreg=outliers)
+```
+
+MA(3) analysis
+
+```{r}
+summary(MA3)
+```
+```{r}
+checkresiduals(MA3)
+```
+```{r}
+coeftest(MA3)
+```
+AR2 analysis
+
+```{r}
+summary(AR2)
+```
+
+```{r}
+checkresiduals(AR2)
+```
+```{r}
+coeftest(AR2)
+```
+
+**Discussion:** MA(3) still is the best fit with the smallest AIC of 1009.97 after fitting ARMA(2,3), MA(4), and AR(3), with AICs of 1011.2, 1011.96, 1020.87 respectively. We see also in MA(4) and AR(3) that the added lags in each model are insignificant and thus overfit. We can now confidently use MA(3).
+
+
+```{r}
+ARMA23<-Arima(pctchange.ts,order=c(2,0,3), xreg=outliers)
+MA4<-Arima(pctchange.ts,order=c(0,0,4), xreg=outliers)
+AR3<-Arima(pctchange.ts,order=c(3,0,0), xreg=outliers)
+```
+
+```{r}
+summary(ARMA23)
+checkresiduals(ARMA23)
+coeftest(ARMA23)
+```
+
+```{r}
+summary(MA4)
+checkresiduals(MA4)
+coeftest(MA4)
+```
+
+```{r}
+summary(AR3)
+checkresiduals(AR3)
+coeftest(AR3)
+```
+
+(iv) Examine the residuals to investigate whether your selected model has achieved
+reduction to white noise. For this purpose include in your discussion consideration of the
+residual autocorrelations and partial autocorrelations and the residual spectral density.
+Also examine and discuss the plot of the residuals vs. time. Perform Bartlett’s test to
+determine if the fit has produced reduction to white noise. [Bartlett’s test is described
+and its use is illustrated in the 28 March notes.]
+
+**Discussion:** The ACF, PACF, and spectrum plots all indicate that the MA(3) model has been reduced to white noise. The ACF and PACF plots show no significant lag (all lags are within the blue lines) and the spectrum analysis shows that the highest and lowest peaks are well within the blue line above the notch. 
+
+The residuals show constant variance over time, and there is no significant autocorrelation structure that can be seen in the residuals.
+
+Bartlett's test shows that the model has been reduced to white noise. With a p-value of 0.9949, we cannot reject the null hypothesis that MA(3) fit has been reduced to white noise.
+
+```{r}
+forecast::tsdisplay(resid(MA3))
+```
+```{r}
+spectrum(resid(MA3))
+```
+```{r}
+bartlettB.test(ts(resid(MA3)))
+```
+
+(v) Find the zeros of the autoregressive polynomial for your model fit and interpret the
+results.
+
+**Discussion:** Since we chose an MA(3) model we find first the autoregressive form of the model by calculating deltas. The amplitude of complex zeros is 0.4477, which suggests that the presence of cycle is weak as it is closer to 0 than 1. The zeros of the autoregressive polynomial suggests the presence of a weak cycle of length about 15.45 quarters. This corresponds to peaks in the estimated spectral density at approximately 1/15.45 = 0.0647 cycles per quarter.
+
+```{r}
+coef(MA3)
+```
+```{r}
+delta<-c(rep(0,times=10))
+delta[1]<-1
+delta[2]<--0.1875751
+
+for(j in 3:10){
+j1<-j-1
+j2<-j-2
+delta[j]<-- 0.1875751*delta[j1]-0.3568942*delta[j2]
+}
+
+delta
+```
+
+```{r}
+# choosing delta[1:4] because MA(3) model has 3 coefficients
+zeros<-1/polyroot(delta[1:4])
+zeros
+```
+
+```{r}
+#amplitude. Selecting zero with positive imaginary part.
+Mod(zeros[3])
+#period
+2*pi/Arg(zeros)[3]
+```
+
+
+(b) Repeat the analysis in part (a) for the full time period in the data set, 1953.1 to
+2019.4. Note that now the time series spans 268 quarters.
+
+(i) Plot the data vs. time and discuss features of the plot. Give a list of the economic
+downturns as determined by the Business Cycle Dating Committee of NBER. Can you
+relate these recessions to movements in the plot?
+
+**Discussion:** The extended plot now includes the 2008-2009 recession period and in it tthe percentage change of personal consumption expenditures are negative, a continuation of the pattern previously seen in the 1953-2007 analysis. As previously stated, this means consumers spend less on personal consumption during recession periods.
+
+```{r}
+set.seed(0)
+dat <- consumption
+
+## Determine highlighted regions
+v <- dat$rects
+
+## Get the start and end points for highlighted regions
+inds <- diff(c(0, v))
+#print(v)
+start <- dat$Time[inds == 1]
+end <- dat$Time[inds == -1]
+if (length(start) > length(end)) end <- c(end, tail(dat$Time, 1))
+
+## highlight region data
+rects <- data.frame(start=start, end=end, group=seq_along(start))
+
+ggplot(data=dat, aes(Time, Pctchange)) +
+theme_minimal() +
+geom_line(color = "#00AFBB", size = .5) +
+geom_rect(data=rects, inherit.aes=FALSE, aes(xmin=start, xmax=end, ymin=min(dat$Pctchange),
+ymax=max(dat$Pctchange), group=group), color="transparent", fill="orange", 
+alpha=0.3) +
+labs(title = "U.S. Real Personal
+Consumption Expenditures Percentage Changes (Quarterly)", subtitle = "(From 1953 to 2019 - Contraction period highlighted in Orange)") 
+```
+(ii) Begin by identifying outliers and form dummies for them. [Form the dummies to
+have length 220, so they cover the time span from 1953.1 to 2007.4.]
+
+**Discussion:** There are no new outliers that can be immediately seen from the plot. We do see a new low point during the 2009 recession but the drop is not so dramatic, as indicated by the percentage change points which is still over -5 (the previous outliers have percentage change points of either less than -5 or greater than 10). If our residuals later indicate that it is indeed an outlier we can refit.
+
+```{r}
+jan58<-rep(0, nrow(consumption))
+oct65<-rep(0, nrow(consumption))
+oct74<-rep(0, nrow(consumption))
+apr80<-rep(0, nrow(consumption))
+
+jan58[21] <- 1
+oct65[52] <- 1
+oct74[88] <- 1
+apr80[110] <- 1
+
+consumption$jan58 <- jan58
+consumption$oct65 <- oct65
+consumption$oct74 <- oct74
+consumption$apr80 <- apr80
+```
+
+(iii) An ARX model has the form. Then R commands to
+fit such a model to the percentage changes, if the chosen order of the AR structure is p,
+are as follows:
+
+Fit an ARX model to the data covering the period 1953.1 to 2007.4. Explain how you
+arrived at your model fit.
+
+**Discussion:** The initial ACF still suggests MA(3) fit to start, however now the PACF suggests AR(3) could be a better place to start instead of AR(2). We
+
+```{r}
+pctchange.ts.all<-ts(consumption$Pctchange)
+forecast::tsdisplay(pctchange.ts.all)
+```
+**Discussion:** We fit MA(3) and AR(3) models below, including the outliers AND using the entire consumption dataset. Bartlett's test for both models show that white noise reduction was successfully achieved, however MA(3) has better/smaller AIC than AR(3) (AIC is 1202.46 for MA(3) and 1213.58 for AR(3)). Both models show that all four of the outlier variables are statistically significant.
+
+The Coefficient test for AR(3) shows that it is an overfit model (the ar3 variable has a p-value of 0.35).
+
+The ACF and PACF plot for the residuals of MA(3) model now shows that at lag 24 the line exceeds the blue threshold, however it is only slighlty exceeds the blue threshold so it is not necessarily critical that we add a variable to account for it.  
+
+We next try an ARMA(3,3), and MA(4) and AR(2) for comparison and see if they may provide a better fit.
+
+```{r}
+outliers<- consumption %>% select(jan58, oct65,oct74,apr80)
+outliers<- as.matrix(outliers)
+MA3.all<-Arima(pctchange.ts.all,order=c(0,0,3), xreg=outliers)
+AR3.all<-Arima(pctchange.ts.all,order=c(3,0,0), xreg=outliers)
+```
+
+MA(3).all analysis
+
+```{r}
+summary(MA3.all)
+```
+```{r}
+checkresiduals(MA3.all)
+```
+```{r}
+pacf(resid(MA3.all))
+```
+
+
+```{r}
+coeftest(MA3.all)
+```
+```{r}
+bartlettB.test(ts(resid(MA3.all)))
+```
+
+AR3.all analysis
+
+```{r}
+summary(AR3.all)
+```
+
+```{r}
+checkresiduals(AR3.all)
+```
+
+```{r}
+pacf(resid(AR3.all))
+```
+
+```{r}
+coeftest(AR3.all)
+```
+```{r}
+bartlettB.test(ts(resid(AR3.all)))
+```
+
+**Discussion:** MA(3) still is the best fit with the smallest AIC of 1202.46 after fitting ARMA(3,3), MA(4), and AR(2), with AICs of 1209.14, 1204.1, 1212.46 respectively. We see also in MA(4) that the added lags in the model are insignificant and thus overfit. MA(3) still has the smallest AIC so we will go forward in our analysis using this model.
+
+```{r}
+ARMA33.all<-Arima(pctchange.ts.all,order=c(3,0,3), xreg=outliers)
+MA4.all<-Arima(pctchange.ts.all,order=c(0,0,4), xreg=outliers)
+AR2.all<-Arima(pctchange.ts.all,order=c(2,0,0), xreg=outliers)
+```
+
+```{r}
+summary(ARMA33.all)
+checkresiduals(ARMA33.all)
+coeftest(ARMA33.all)
+```
+
+```{r}
+summary(MA4.all)
+checkresiduals(MA4.all)
+coeftest(MA4.all)
+```
+
+```{r}
+summary(AR2.all)
+checkresiduals(AR2.all)
+coeftest(AR2.all)
+```
+
+(iv) Examine the residuals to investigate whether your selected model has achieved
+reduction to white noise. For this purpose include in your discussion consideration of the
+residual autocorrelations and partial autocorrelations and the residual spectral density.
+Also examine and discuss the plot of the residuals vs. time. Perform Bartlett’s test to
+determine if the fit has produced reduction to white noise. [Bartlett’s test is described
+and its use is illustrated in the 28 March notes.]
+
+**Discussion:** The ACF, PACF, and spectrum plots all indicate that the MA(3) model has been reduced to white noise. The ACF and PACF plots show some lag at lag 24 but it is not too significant. The spectrum analysis shows that the highest and lowest peaks are well within the blue line above the notch. 
+
+The residuals show constant variance over time, and there is no significant autocorrelation structure that can be seen in the residuals. There may be is a bit of funneling of residuals at later periods but not to such an extent that we can confidently conclude presence of heteroscedacticity in the residuals.
+
+Bartlett's test overwhelmingly shows that the model has been reduced to white noise with a p-value of 0.9999.
+
+```{r}
+forecast::tsdisplay(resid(MA3.all))
+```
+```{r}
+spectrum(resid(MA3.all))
+```
+
+```{r}
+bartlettB.test(ts(resid(MA3.all)))
+```
+(v) Find the zeros of the autoregressive polynomial for your model fit and interpret the
+results.
+
+**Discussion:** Since we chose an MA(3) model we find first the autoregressive form of the model by calculating deltas. The amplitude of complex zeros of the deltas is now 0.4968268, which suggests that the presence of cycle is weak as it is closer to 0 than 1. The zeros of the autoregressive polynomial suggests the presence of a weak cycle of length about 13.21 quarters. This corresponds to peaks in the estimated spectral density at approximately 1/15.45 = 0.0757 cycles per quarter.
+
+```{r}
+coef(MA3)
+```
+
+```{r}
+coef(MA3.all)
+```
+
+```{r}
+delta<-c(rep(0,times=10))
+delta[1]<-1
+delta[2]<--0.2257209
+
+for(j in 3:10){
+j1<-j-1
+j2<-j-2
+delta[j]<-- 0.2257209*delta[j1]-0.3850609*delta[j2]
+}
+
+delta
+```
+
+```{r}
+# choosing delta[1:4] because MA(3) model has 3 coefficients
+zeros<-1/polyroot(delta[1:4])
+zeros
+```
+
+```{r}
+#amplitude. Selecting zero with positive imaginary part.
+Mod(zeros[3])
+#period
+2*pi/Arg(zeros)[3]
+```
+
+
+(c) The quarterly percentage changes for 2020.1 to 2021.4 were −6.9, −33.4, 41.4, 3.4,
+11.4, 12.0, 2.0, and 3.1. Comment briefly on the implications of these numbers.
+
+**Discussion:** The introduction of these numbers to fit a model may lead to sub-optimal models. The four previously identified outliers are percentage changes of values of -5.4, 11.7, -5.7, and -8.7. If we use the same standard in selecting these outliers (less than -5 and greater than 10), then five percentage change values from 2020.1 to 2021.4 would classify as outliers (−6.9, −33.4, 41.4, 11.4, 12.0). Two values in particular, -33.4 and 41.4, are vastly different from anything we have seen from 1953.1 to 2019.4, where most percentage changes fall between -5.0 and 10.0. These numbers has the potential to distort the model fitted and should be excluded.
+

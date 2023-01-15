@@ -1,0 +1,2 @@
+"0","return.ts<-ts(pge$Return,start=c(1998,1),freq=12)"
+"0","plot(return.ts,xlab=""Time"",ylab=""Returns"",main=""PGE Returns, 1998 to 2021 "")"

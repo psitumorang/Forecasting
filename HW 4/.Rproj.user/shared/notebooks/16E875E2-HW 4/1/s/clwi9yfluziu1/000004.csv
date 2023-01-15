@@ -1,0 +1,2 @@
+"0","arimapred2.ts<-ts(arimapred2,start=c(1990,1),freq=12)"
+"0","boxplot(arimapred2.ts~cycle(arimapred2.ts))"

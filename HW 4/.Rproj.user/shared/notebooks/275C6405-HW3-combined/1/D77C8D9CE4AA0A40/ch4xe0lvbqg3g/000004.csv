@@ -1,0 +1,2 @@
+"0","consumption <- read.csv(""qconsumption2.txt"")"
+"0","attach(consumption)"

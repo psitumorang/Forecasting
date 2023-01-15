@@ -1,0 +1,5 @@
+"0",""
+"0","# Package setup"
+"0","if(!require(""pacman"")) install.packages(""pacman"")"
+"0",""
+"0","pacman::p_load(car, here, tidyverse, dplyr, ggplot2, data.table, lubridate, glmnet, stargazer, forecast, lmtest, hwwntest)"

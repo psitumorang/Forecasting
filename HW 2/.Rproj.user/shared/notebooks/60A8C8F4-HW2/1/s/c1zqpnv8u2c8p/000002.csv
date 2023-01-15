@@ -1,0 +1,2 @@
+"0","# filter year <= 2019"
+"0","sales <- sales %>% filter(Year <= 2019 )"

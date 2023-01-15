@@ -1,0 +1,6 @@
+"0","sales<-read.csv(file = ""C:\\Users\\phili\\Desktop\\STAT 535\\STAT 535 HW1\\GroceryStoreSales.txt"")"
+"0",""
+"0","sales$Time<-as.numeric(sales$Time)"
+"0","fMonth<-as.factor(sales$Month)"
+"0",""
+"0","sales<-data.frame(sales,fMonth)"

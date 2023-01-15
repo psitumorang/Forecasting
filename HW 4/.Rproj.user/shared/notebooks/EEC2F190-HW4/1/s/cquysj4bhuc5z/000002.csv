@@ -1,0 +1,4 @@
+"0","# add dummy variable for outlier"
+"0","feb09<-rep(0, max(imports$Time))"
+"0","feb09[242] <- 1"
+"0","imports<-data.frame(imports,feb09)"

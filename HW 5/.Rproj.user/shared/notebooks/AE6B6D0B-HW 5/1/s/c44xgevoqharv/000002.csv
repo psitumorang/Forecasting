@@ -1,0 +1,1 @@
+"0","model2<-arima(returns.ts,order=c(0,0,5),seasonal=list(order=c(0,0,1),period=12))"

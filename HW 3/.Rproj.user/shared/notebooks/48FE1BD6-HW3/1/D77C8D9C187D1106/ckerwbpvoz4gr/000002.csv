@@ -1,0 +1,42 @@
+"0","# excluding c432, s432"
+"0","model9 <- lm(logmsales~Time+I(Time^2)+I(Time^3)+I(Time^4)+I(Time^5)+fMonth+obs84+obs120+c348+s348+ madv+madvl1+madvl2+madvl3+madvl4+msalesl1+msalesl2+msalesl3+msalesl4,data=m.sales)"
+"0",""
+"0","anova(model9, model5)"
+"1","Analysis of Variance Table
+"
+"1","
+"
+"1","Model 1: logmsales ~ Time + I(Time^2) + I(Time^3) + I(Time^4) + I(Time^5) + 
+    fMonth + obs84 + obs120 + c348 + s348 + madv + madvl1 + madvl2 + 
+    madvl3 + madvl4 + msalesl1 + msalesl2 + msalesl3 + msalesl4
+Model 2: logmsales ~ Time + I(Time^2) + I(Time^3) + I(Time^4) + I(Time^5) + 
+    fMonth + obs84 + obs120 + c348 + s348 + c432 + s432 + madv + 
+    madvl1 + madvl2 + madvl3 + madvl4 + msalesl1 + msalesl2 + 
+    msalesl3 + msalesl4"
+"1","
+"
+"1"," "
+"1"," Res.Df"
+"1","  RSS"
+"1"," Df"
+"1"," Sum of Sq"
+"1","    F"
+"1"," Pr(>F)"
+"1","
+1"
+"1","    150"
+"1"," 1.10"
+"1","   "
+"1","          "
+"1","     "
+"1","       "
+"1","
+2"
+"1","    148"
+"1"," 1.09"
+"1","  2"
+"1","   0.00964"
+"1"," 0.65"
+"1","   0.52"
+"1","
+"

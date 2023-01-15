@@ -1,0 +1,7 @@
+"0","knitr::opts_chunk$set(echo = T, fig.width=8, fig.height=4)"
+"0","options(scipen = 999, digits = 3)  # controls base R output"
+"0",""
+"0","# Package setup"
+"0","if(!require(""pacman"")) install.packages(""pacman"")"
+"0",""
+"0","pacman::p_load(car, tidyverse, dplyr, ggplot2, data.table, lubridate, glmnet, kableExtra, stargazer)"

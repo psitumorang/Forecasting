@@ -1,0 +1,7 @@
+"0","b1<-coef(model8)[1]"
+"0","b2<-coef(model8)[8:18]+b1"
+"0","b3<-c(b1,b2)"
+"0","seas<-b3-mean(b3)"
+"0",""
+"0","seas.ts<-ts(exp(seas))"
+"0","plot(seas.ts,ylab=""seasonal indices"",xlab=""month"", type=""b"", pch=19)"

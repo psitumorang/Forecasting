@@ -1,0 +1,2 @@
+"0","# excluding c432, s432"
+"0","model5 <- lm(logmsales~Time+I(Time^2)+I(Time^3)+I(Time^4)+I(Time^5)+fMonth+obs84+obs120+c348+s348+ madv+madvl1+madvl2+madvl3+madvl4+msalesl1+msalesl2+msalesl3+msalesl4,data=m.sales)"

@@ -1,0 +1,2 @@
+"0","# take the span of 1953.1 to 2007.4"
+"0","consumption.a <- consumption %>% slice(1:220)"

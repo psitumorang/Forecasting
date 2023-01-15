@@ -1,0 +1,4 @@
+"0","outliers<- consumption.a %>% select(jan58, oct65,oct74,apr80)"
+"0","outliers<- as.matrix(outliers)"
+"0","MA3<-Arima(pctchange.ts,order=c(0,0,3), xreg=outliers)"
+"0","AR2<-Arima(pctchange.ts,order=c(2,0,0), xreg=outliers)"
