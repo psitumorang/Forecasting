@@ -1,0 +1,1 @@
+A linear, multiplicative decomposition model forecasting U.S. grocery store sales based on sales between 1992-2021. An exercise of accounting for trend, seasonality, and autocorrelation to create a robust linear forecasting model. 

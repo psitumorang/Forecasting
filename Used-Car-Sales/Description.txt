@@ -1,0 +1,1 @@
+A linear, multiplicative decomposition model forecasting U.S. used car sales based on 1992-2021 data with dynamic seasonality.

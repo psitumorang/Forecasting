@@ -1,0 +1,291 @@
+---
+title: "Modeling Lady Pinkham Sales based on its Advertising Budget"
+output: html_document
+---
+
+```{r Setup, include=FALSE, results='hide', warning=FALSE}
+
+# Package setup
+#if(!require("pacman")) install.packages("pacman")
+#
+#pacman::p_load(car, here, tidyverse, dplyr, ggplot2, data.table, lubridate, glmnet, kableExtra, stargazer, forecast, lmtest, hwwntest)
+```
+
+An examination of monthly Lydia Pinkham data for the period
+1938 through 1952. It addresses model construction and estimation of the 90 per cent
+duration interval.
+
+```{r}
+m.sales <- read.csv("Lydiamonthly.txt")
+
+Time <- seq(1, nrow(m.sales))
+fMonth<-as.factor(m.sales$month)
+logmsales <- log(m.sales$msales)
+
+m.sales<-data.frame(m.sales, Time, fMonth, logmsales)
+
+attach(m.sales)
+```
+
+
+Constructing a model relating sales and advertising with sales as the response. Explore
+the inclusion of lagged sales and lagged advertising variables. Include estimation of
+seasonal structure, dummies for outliers, and necessary calendar variables. Describe your
+fitted model.
+
+**Analysis:** An initial inspection of model1 suggests that AR3 model is a good place to start. 
+
+```{r}
+model1<-lm(msales~madv)
+summary(model1)
+```
+```{r}
+forecast::tsdisplay(resid(model1))
+```
+
+
+Exploring the inclusion of lagged sales and lagged advertising variables. Including estimation of seasonal structure, dummies for outliers, and necessary calendar variables. First we fit an AR(3) model with the inclusion of following X variables: advertising, lagged advertising, all dummy fmonth variables, all dummy outlier variables, and all calendar pairs.
+
+The initial residual plot is not flat, and while the autocorrelation plot shows that there remains significant autocorrelation in the model at lag 28, the lags are largely within the blue lines. The spectrum analysis of the residuals show that the model has been reduced to white noise (as indicated by the blue line measurement). The AIC of this model is 3965.163.
+
+**Lag Variables:** The initial summary indicates that AR3 (msalesl3) has marginal significance. We will try AR(2) model next.
+
+**X Variables:**
+The preliminary summary below indicates that lagged advertising variables 2, 3, and 4 have marginal significance. We will try reducing the number to 2 lagged advertising variables (including madvl1 and madvl2).
+
+The fMonth dummy variables seem to be significant, will have to conduct a partial f-test to confirm this. Some of the calendar pairs do not seem to be significant and we have to individually inspect their significance through partial f-test. All the outliers seem to be significant, so we will keep them.
+
+```{r}
+model2 <- lm(msales~madv+madvl1+madvl2+madvl3+madvl4+msalesl1+msalesl2+msalesl3+fMonth+feb44+dec44+jan45+sep45+c220+s220+c348+s348+c432+s432)
+
+summary(model2)
+```
+```{r}
+res2 <- resid(model2)
+resid2 <- ts(res2) #,start=c(1992,1),freq=12)
+plot(resid2, xlab="time",ylab="residuals",main="Residuals of Model 2")
+```
+``` {r}
+acf(ts(res2), 37)
+```
+```{r}
+spectrum(res2, span=3)
+abline(v=c(1/12,2/12,3/12,4/12,5/12,6/12),col="red",lty=2)
+abline(v=c(0.348,0.432),col="blue",lty=2)
+```
+```{r}
+AIC(model2)
+
+```
+
+**Discussion:** This model 3 shows a little bit of improvement in terms of AIC: the AIC IS now 3961.624, down from 3965.16 previously. This is in part due to the reduction of lagged advertising variables (we include in model3 only the first two lagged advertising variables compared to all four lagged advertising variables in the previous model).
+
+The summary shows that madvl2 has marginal significance in this model. We conducted anova test to see the significance of madvl1 and madvl2 together, and they show a marginal significance of .1195. This suggests that madvl2 may not be necessary. We will exclude it in our next fit.
+
+```{r}
+model3 <- lm(msales~madv+madvl1+madvl2+msalesl1+msalesl2+msalesl3+fMonth+feb44+dec44+jan45+sep45+c220+s220+c348+s348+c432+s432)
+
+summary(model3)
+```
+```{r}
+res3 <- resid(model3)
+resid3 <- ts(res3) #,start=c(1992,1),freq=12)
+plot(resid3, xlab="time",ylab="residuals",main="Residuals of Model 3")
+```
+``` {r}
+acf(ts(res3), 37)
+```
+```{r}
+spectrum(res3, span=3)
+abline(v=c(1/12,2/12,3/12,4/12,5/12,6/12),col="red",lty=2)
+abline(v=c(0.348,0.432),col="blue",lty=2)
+```
+```{r}
+AIC(model3)
+```
+```{r}
+model3.1 <- lm(msales~madv+msalesl1+msalesl2+msalesl3+fMonth+feb44+dec44+jan45+sep45+c220+s220+c348+s348+c432+s432)
+
+anova(model3.1, model3)
+```
+
+**Discussion:** In this model we exclude the variable madvl2 and noticed an improvement in AIC from 3161.62 to 3960.17. The advertising and lagged advertising variables are now shown to be significant. Next we conduct partial f-test to test the significance of fMonth and calendar pair variables.
+
+```{r}
+model4 <- lm(msales~madv+madvl1+msalesl1+msalesl2+msalesl3+fMonth+feb44+dec44+jan45+sep45+c220+s220+c348+s348+c432+s432)
+
+summary(model4)
+```
+
+```{r}
+AIC(model4)
+```
+
+**Partial F-test testing the significance of fMonth variables**
+
+**Discussion:** Partial f-tests below indicate that fMonth variables are significant.
+
+```{r}
+model5.1 <- lm(msales~madv+madvl1+msalesl1+msalesl2+msalesl3+fMonth+feb44+dec44+jan45+sep45+c220+s220+c348+s348+c432+s432)
+
+model5.2 <- lm(msales~madv+madvl1+msalesl1+msalesl2+msalesl3+feb44+dec44+jan45+sep45+c348+c220+s220+s348+c432+s432)
+
+anova(model5.2, model5.1)
+```
+
+**Partial F-test testing the significance of calendar pair variables**
+
+**Discussion:** Partial f-tests below indicate that calendar pairs 220, 348, and 432 have significances of .05286, 0.05859, and 0.7798 respectively. Based on this we can remove the 432 pair. After removing the pair, the AIC improves to 3956.76 from 3960.17
+
+```{r}
+model5.3 <- lm(msales~madv+madvl1+msalesl1+msalesl2+msalesl3+fMonth+feb44+dec44+jan45+sep45+c348+s348+c432+s432)
+
+anova(model5.3, model5.1)
+```
+```{r}
+model5.4 <- lm(msales~madv+madvl1+msalesl1+msalesl2+msalesl3+fMonth+feb44+dec44+jan45+sep45+c220+s220+c432+s432)
+
+anova(model5.4, model5.1)
+```
+
+```{r}
+model5.5 <- lm(msales~madv+madvl1+msalesl1+msalesl2+msalesl3+fMonth+feb44+dec44+jan45+sep45+c220+s220+c348+s348)
+
+anova(model5.5, model5.1)
+```
+
+```{r}
+model6<- lm(msales~madv+madvl1+msalesl1+msalesl2+msalesl3+fMonth+feb44+dec44+jan45+sep45+c220+s220+c348+s348)
+
+AIC(model6)
+```
+**final model**
+
+The final model includes as variables:
+  - contemporary advertising
+  - lag 1 advertising variables (madvl1)
+  - all the lag sales variables (msalesl1-msalesl3)
+  - the fmonth dummy variables to account for seasonality
+  - all four outlier variables(feb44, dec44, jan45, sep45)
+  - calendar pairs 220 and 348
+  
+We conduct a final partial f-test to determine the significance of lagged advertising variables (madvl2, madvl3, madvl4) and the test concludes that they do not Granger-cause msales with p-value of 0.8088.
+
+A look at the seasonal indices plot indicate that, annually and on average, sales drop in April to June and rises from August to October before dropping in November and December. Thereafter sales would pick up in January to March before dropping in April.
+
+```{r}
+model6<- lm(msales~madv+madvl1+msalesl1+msalesl2+msalesl3+fMonth+feb44+dec44+jan45+sep45+c220+s220+c348+s348)
+
+model6.1<- lm(msales~madv+madvl1+madvl2+madvl3+madvl4+msalesl1+msalesl2+msalesl3+fMonth+feb44+dec44+jan45+sep45+c220+s220+c348+s348)
+
+anova(model6.1, model6)
+```
+``` {r}
+b1<-coef(model6)[1]
+b2<-coef(model6)[7:17]+b1
+b3<-c(b1,b2)
+seas<-b3-mean(b3)
+
+seas.ts<-ts(seas)
+seas
+seas.ts
+plot(seas.ts,ylab="seasonal indices",xlab="month")
+```
+
+```{r}
+res6 <- resid(model6)
+```
+
+
+
+**Residual Analysis**
+
+The qqplot indicates that normality has been roughly achieved, as most observations fall on the qqline. There are a few deviations at the tails, however they are a few compared to the the vast majority of observations which fall on the line.
+
+The residuals plot show that it is largely flat and variance is relatively constant around the mean of 0. We cannot reject that homoscedacticity is not achieved based on this plot.
+
+The ACF and PACF plots show no significant autocorrelation except for lag 28 in the ACF plot. There are a few lags in the two plots which seem to reach the blue line but they do not excessively cross the line. I decided to leave them as is as they do not constitute a major issue for the model.
+
+The residual spectral density plot indicates that white noise reduction has been achieved as the distance between highest and lowest peaks of the plot is less than twice the length of the blue measurement line above the notch.
+
+**normal quantile plot**
+
+```{r}
+qqnorm(res6)
+qqline(res6)
+```
+
+**plot the residuals vs. time**
+
+```{r}
+plot(ts(res6), xlab="time",ylab="residuals",main="Residuals of Model 6")
+```
+
+**present the residual autocorrelations and partial autocorrelations** 
+
+``` {r}
+acf(ts(res6), 37)
+```
+``` {r}
+pacf(ts(res6))
+```
+
+**produce the residual spectral density plot**
+
+```{r}
+spectrum(res6, span=3)
+abline(v=c(1/12,2/12,3/12,4/12,5/12,6/12),col="red",lty=2)
+abline(v=c(0.348,0.432),col="blue",lty=2)
+```
+```{r}
+summary(model6)
+```
+
+
+
+
+**Discussion:** The calculation below shows a 90% duration interval of 6.10 years. This indicates that current advertising continues to have an impact upon sales for approximately 6.10 years.
+
+```{r}
+summary(model6)
+```
+
+St = 20920 + 0.4458St-1 + 0.2766St-2 + 0.1202St-3 +  0.2296At + .08894At-1 + ...
+
+(1 – 0.4458BSt-1 - 0.2766B^2St-2 - 0.1202B^3St-3) St = 20920 + 0.2296At + .08894At-1 + ...
+
+St = 
+  (1 – 0.4458BSt-1 - 0.2766B^2St-2 - 0.1202B^3St-3)^-1 * 21030 + 
+  (1 – 0.4458BSt-1 - 0.2766B^2St-2 - 0.1202B^3St-3)^-1 * (0.2296 + .08894B)At + ...
+
+
+We have a case where p = 3, r = 1, so p >= r,
+
+Now we calculate deltas
+
+delta0 = .2296
+delta1 = .08894 + (0.4458 * .2296) = .1913
+
+
+```{r}
+deltapartial<-delta<-c(rep(0,times=500))
+#deltapartial is the partial sum of the deltas
+delta[1]<-0.2296
+delta[2]<-0.1913
+
+deltapartial[1]<-delta[1]
+deltapartial[2]<-deltapartial[1]+delta[2]
+for(j in 3:500){
+j1<-j-1;j2<-j-2
+delta[j]<-0.4458*delta[j1]+0.2766*delta[j2]
+deltapartial[j]<-deltapartial[j1]+delta[j]
+}
+
+deltapartial[500]*0.9
+```
+
+```{r}
+deltapartial[1:20]
+```
+
+90 percent duration interval = 2 + (1.033 - .4209) / (.570 - .4209) = 6.10

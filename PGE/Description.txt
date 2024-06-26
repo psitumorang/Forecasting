@@ -1,0 +1,1 @@
+Fitting an ARMA-GARCH model to forecast return on Pacific Gas and Electric (PGE) common stock.

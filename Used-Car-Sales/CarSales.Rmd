@@ -1,0 +1,396 @@
+---
+title: "U.S. Used Car Sales Forecast"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(dplyr)
+```
+
+
+```{r}
+sales<-read.csv("UsedCarSales.txt")
+
+Time <- seq(1, nrow(sales))
+fMonth<-as.factor(sales$Month)
+
+sales<-data.frame(sales, Time, fMonth)
+```
+
+During the years 1992 to 2021 the Business Cycle Dating Committee of the National Bureau of Economic Research defined three periods of economic contraction, 2001(4) to 2001(11), 2008(1) to 2009(6), and 2020(3) to 2020(4).
+
+**Analysis:**
+
+Trend: There is an upward trend in used car sales from 1992 to 2021. Overall trend either flattens or drops during economic contraction periods. 
+
+Seasonality: Strong seasonality indicated by the plots. Used car sales seem to peak in the spring and summer months and are lowest in winter months. The cycle seems to be annual.
+
+Volatility: Volatility in sales increases as sales increases. This indicates that a multiplicative decomposition model should be fit to model sales.
+
+Unusual features: Overall trend either flattens or drops during economic contraction periods. Between 2001(4) to 2001(11) sales level flattens and in both 2008(1) to 2009(6) and 2020(3) to 2020(4) sales visibly drops. In 2020(3) to 2020(4) in particular, sales sharply drops due to the start of the COVID-19 pandemic and consumers were on lockdown. Sales would peak twice after 2020(3) drop, likely following the two economic impact payments by the government.
+
+Multiplicative or additive: multiplicative model should be used as volatility increases over time.
+
+
+``` {r}
+## Example data
+set.seed(0)
+dat <- sales
+
+## Determine highlighted regions
+v <- rep(0, max(dat$Time))
+v[c(112:119, 193:210, 339:340)] <- 1
+
+## Get the start and end points for highlighted regions
+inds <- diff(c(0, v))
+start <- dat$Time[inds == 1]
+end <- dat$Time[inds == -1]
+if (length(start) > length(end)) end <- c(end, tail(dat$Time, 1))
+
+## highlight region data
+rects <- data.frame(start=start, end=end, group=seq_along(start))
+
+ggplot(data=dat, aes(Time, Sales)) +
+theme_minimal() +
+geom_line(color = "#00AFBB", size = .6) +
+geom_rect(data=rects, inherit.aes=FALSE, aes(xmin=start, xmax=end, ymin=min(dat$Sales),
+ymax=max(dat$Sales), group=group), color="transparent", fill="orange", 
+alpha=0.3) +
+labs(title = "Used Car Sales", subtitle = "(Contraction period highlighted in Orange)") 
+```
+``` {r}
+ggplot(data=dat, aes(Time, logSales)) +
+theme_minimal() +
+geom_line(color = "#FC4E07", size = .6) +
+geom_rect(data=rects, inherit.aes=FALSE, aes(xmin=start, xmax=end, ymin=min(dat$logSales),
+ymax=max(dat$logSales), group=group), color="transparent", fill="orange", alpha=0.3) +
+labs(title = "Log Sales", subtitle = "(Contraction period highlighted in Orange)") 
+```
+
+
+***Analysis of Spectral Plots** 
+
+Trend: There is peak at low frequency, indicating presence of trend.
+
+Seasonal frequencies: There is evidence for strong seasonal component as indicated by peaks at the dashed red lines, which mark the seasonal frequencies 1/12, 2/12, 3/12, 4/12, 5/12, and 6/12. 
+
+Calendar pair: There is a peak at frequency 348, which indicates that the calendar pair may be significant.
+
+
+``` {r logSales spectral plot}
+logSales.ts <- ts(sales$logSales)
+spectrum(logSales.ts, span=5)
+abline(v=c(1/12,2/12,3/12,4/12,5/12,6/12),col="red",lty=2)
+abline(v=c(0.348,0.432),col="blue",lty=2)
+
+```
+
+
+**Analysis:** Final fit of the linear model will include time and month variables, as well as observation 203 and c348 and s348 calendar variables. The F-test for observation 203 yields a p-value of 0.005, and the calendar variables c348 and s348 yields the p-value of 0.045, both are small enough to indicate significance. We conclude from F-test below that c432 and S432 are not significant.
+
+``` {r}
+# filter year <= 2019
+sales <- sales %>% filter(Year <= 2019 )
+```
+
+``` {r}
+# add outlier obs203
+obs203<-rep(0, max(sales$Time))
+obs203[203] <- 1
+sales<-data.frame(sales,obs203)
+```
+
+``` {r}
+model1<-lm(logSales~Time+I(Time^2)+I(Time^3)+I(Time^4)+I(Time^5)+I(Time^6)+fMonth+obs203+c348+s348+c432+s432, data = sales);
+```
+
+Partial F-test to determine the significance of Trend variables
+
+``` {r}
+# excluding the time polynomials
+model2<-lm(logSales~fMonth+obs203+c348+s348+c432+s432, data = sales)
+
+anova(model2, model1)
+```
+
+Partial F-test to determine the significance of fMonth dummy variables
+
+``` {r}
+# excluding the fMonth dummy variable
+model3<-lm(logSales~Time+I(Time^2)+I(Time^3)+I(Time^4)+I(Time^5)+I(Time^6)+obs203+c348+s348+
+c432+s432, data = sales)
+
+anova(model3, model1)
+```
+Partial F-test to determine the significance of both calendar pair variables
+
+``` {r}
+# excluding the calendar pairs
+model4<-lm(logSales~Time+I(Time^2)+I(Time^3)+I(Time^4)+I(Time^5)+I(Time^6)+fMonth+obs203, data = sales);
+
+anova(model4, model1)
+```
+Partial F-test to determine the significance of 432 calendar pair variables
+
+``` {r}
+# excluding the 432 calendar pairs
+model5<-lm(logSales~Time+I(Time^2)+I(Time^3)+I(Time^4)+I(Time^5)+I(Time^6)+fMonth+obs203+c348+s348, data = sales);
+
+anova(model5, model1)
+```
+
+Partial F-test to determine the significance of 348 calendar pair variables
+``` {r}
+# excluding the 348 calendar pairs
+model6<-lm(logSales~Time+I(Time^2)+I(Time^3)+I(Time^4)+I(Time^5)+I(Time^6)+fMonth+obs203+c432+s432, data = sales);
+
+anova(model6, model1)
+```
+
+Partial F-test to determine the significance of observation 203
+``` {r}
+# excluding the 348 calendar pairs
+model7<-lm(logSales~Time+I(Time^2)+I(Time^3)+I(Time^4)+I(Time^5)+I(Time^6)+fMonth+c348+s348+c432+s432, data = sales);
+
+anova(model7, model1)
+```
+
+``` {r}
+# final model
+model8<-lm(logSales~Time+I(Time^2)+I(Time^3)+I(Time^4)+I(Time^5)+I(Time^6)+fMonth+obs203+c348+s348, data = sales);
+```
+
+**Analysis: ** Sales drop in the winter months and peak in Spring and Summer months. The cold weather could be the cause of the drop - consumers are less likely to go out in the winter months to shop for cars. And tax refunds may influence the jump in the spring and summer sales. A small peak in August may be due to back-to-school sales. 
+
+``` {r}
+b1<-coef(model8)[1]
+b2<-coef(model8)[8:18]+b1
+b3<-c(b1,b2)
+seas<-b3-mean(b3)
+
+seas.ts<-ts(exp(seas))
+plot(seas.ts,ylab="seasonal indices",xlab="month", type="b", pch=19)
+abline(h=1, col="blue", lwd=1, lty=2)
+```
+
+```{r}
+month <- seq(12)
+seas_indices <- exp(seas)
+seas_df <- data.frame(month, seas, seas_indices)
+print.data.frame(tbl_df(seas_df))
+```
+
+A normal quantile plot of the residuals and the Shapiro–Wilk test, a plot of the residuals vs. time, a residual acf plot, and a residual spectral plot. 
+
+```{r}
+res1 <- resid(model8)
+```
+
+**QQ Plot**
+```{r}
+qqnorm(res1)
+qqline(res1)
+```
+
+**Shapiro-Wilk Test**
+```{r}
+shapiro.test(res1)
+```
+
+**Residuals Plot**
+
+```{r}
+resid1 <- ts(res1,start=c(1992,1),freq=12)
+plot(resid1, xlab="time",ylab="residuals",main="Residuals of Model 1")
+```
+
+**ACF Plot**
+``` {r}
+acf(ts(res1), 37)
+```
+
+**Residuals Spectral Plot**
+
+```{r}
+spectrum(res1, span=5)
+abline(v=c(1/12,2/12,3/12,4/12,5/12,6/12),col="red",lty=2)
+abline(v=c(0.348,0.432),col="blue",lty=2)
+```
+
+**Interpretation**
+
+- QQPLOT: The QQPLOT doesn't support rejecting the null hypothesis that the residuals are normally distributed. Most of the quantiles (observations) fall on the qqline. 
+
+- Shapiro-Wilk Normality Test: The p-value is 0.1097, which is not small enough to reject the null hypothesis that the residuals are normally distributed (given a 95% confidence level, the p-value has to fall below 0.05 to conclude that the residuals are not normal).
+
+- Autocorrelation: The autocorrelation function plot indicates strong correlation between the residuals at lags 1-13 and 31-35, which indicates that the model does not adequately capture trend. We can conclude from the prominence at lags 6, 12, and 30 that there is dynamic seasonality.
+
+- Residual Analysis: The residuals is not flat and rather volatile.  show that the model does not track autocorrelation structure and the trend structure adequately. If a model captures trend, the plot of residuals should be relatively flat. The residuals also seem to be volatile, which indicate that there maybe autocorrelation structure which the model does not capture.
+
+- Spectral plot: Spectral plot is not flat - the length of the highest and lowest points is twice the upperhalf of the blue line. The peak at low frequency reveals remaining trend structure. The peaks at the dashed red lines indicate that there remains some uncaptured seasonality in the model. There is little prominence in the 348 and 432 calendar frequencies, which suggests that our model adequately captures changes in sales due to calendar structure.
+
+4. Visual inspection of the plots in part 1 suggests the seasonal structure is dynamic. To explore this, add the following variables to your model in part 3: Dynamic and Dynamic*fMonth. This addition will produce separate static seasonal estimates for the time spans 1992 to 2010, and 2011 to 2019. For consideration of this methodology, review the analysis of the variety stores sales data in the 7 February notes, where wtgrant corresponds to Dynamic, and Time corresponds to fMonth. There the purpose is to estimate the change in trend, and here the purpose is to estimate dynamic seasonal structure.
+
+**Analysis: ** The addition of new variables seems to be a statistically significant step. The F-test below shows that the p-Value is 0.017, which is below the 5% threshold.
+
+```{r}
+# Time 228 below represent the last month in 2010 (Dec 2010)
+Dynamic <- c(rep(0, 228), rep(1, nrow(sales) - 228))
+sales <- data.frame(sales, Dynamic) 
+```
+
+```{r}
+sales <-transform(sales,DynamicfMonth=ifelse(Dynamic == 1, fMonth, 0))
+sales$DynamicfMonth <- as.factor(sales$DynamicfMonth)
+```
+
+```{r}
+model9<-lm(logSales~Time+I(Time^2)+I(Time^3)+I(Time^4)+I(Time^5)+I(Time^6)+fMonth+obs203+c348+s348+Dynamic+Dynamic*fMonth, data = sales);
+
+anova(model9, model8)
+```
+
+```{r}
+summary(model9)
+```
+
+Constructing two sets of static seasonal index estimates.
+
+```{r}
+
+# fit the model
+model<-lm(logSales~Time+I(Time^2)+I(Time^3)+I(Time^4)+I(Time^5)+I(Time^6)+fMonth+obs203+c348+s348+Dynamic+Dynamic*fMonth, data = sales)
+
+#For the first time span:
+b1<-coef(model)[1]
+b2<-coef(model)[8:18]+b1
+b3<-c(b1,b2)
+seas1<-exp(b3-mean(b3))
+
+#For the second time span:
+b1<-coef(model)[1]+coef(model)[22]
+b2<-coef(model)[8:18]+coef(model)[23:33]+b1
+b3<-c(b1,b2)
+seas2<-exp(b3-mean(b3))
+
+seas1
+seas2
+summary(model)
+```
+
+**Analysis** The 1992-2010 indices differ significantly from 2011-2019 indices. Change in sales is more volatile in the latter period. The latter indices are higher in February and March, meaning that from 2011-2019 change in purchases in the two months are higher than in previous years. The indices then drop sharply and falls below the 1992-2010 indices beginning in April and into the summer and fall months.
+
+I think that the seasonality change after the 2009 recession is due to the change in availability of electronic tax-filing, which speeds up tax returns and shifts buying pattern earlier in the year. Which explains why march has higher indices than in previous year.
+
+Table Comparison
+``` {r}
+month <- seq(12)
+seas_ind_part_3 <- seas.ts
+seas_ind_1992_2010 <- seas1
+seas_ind_2011_2019 <- seas2
+seas_df1 <- data.frame(month, seas_ind_part_3, seas_ind_1992_2010, seas_ind_2011_2019)
+print.data.frame(seas_df1)
+```
+
+Plot Comparison
+``` {r}
+ggplot(seas_df1, aes(x = month)) + 
+  geom_line(aes(y = seas_ind_part_3, color = 'Part 3 Indices'), size =.6, , linetype="dashed") +
+  geom_line(aes(y = seas_ind_1992_2010, color = '1992-2010'), size = .8) + 
+  geom_line(aes(y = seas_ind_2011_2019, color = '2011-2019'), size =.8) +
+  scale_x_continuous(breaks=1:12) +
+  ylab("Seasonal Indices")
+```
+
+
+**Analysis: ** The addition of the dynamic and dynamic fmonth variables have helped in better capturing the seasonality component of our sales data, as indicated by the residual spectral plot below, which shows less prominence in frequencies 1/12, 2/12, 3/12, 4/12, 5/12, and 6/12. The spectral plot is still not flat enough to conclude that the residuals have been reduced to white noise, as indicated by the length of the highest and lowest points which is twice the length of the upper half of the blue line. 
+
+There is still a high peak at the beginning of the residual spectral plot, which indicates uncaptured trend. Autocorrelation plot still indicates significant autocorrelation as we have not introduced variables to address autocorrelation.
+
+
+```{r}
+res2 <- resid(model)
+spectrum(res2, span=5)
+abline(v=c(1/12,2/12,3/12,4/12,5/12,6/12),col="red",lty=2)
+abline(v=c(0.348,0.432),col="blue",lty=2)
+
+```
+
+```{r}
+resid2 <- ts(res2,start=c(1992,1),freq=12)
+plot(resid2, xlab="time",ylab="residuals",main="Residuals of Model 2")
+```
+
+```{r}
+qqnorm(res2)
+qqline(res2)
+```
+
+```{r}
+shapiro.test(res2)
+```
+
+``` {r}
+acf(ts(res2), 37)
+```
+
+**Analysis: ** The residual spectral plot is now flat - the addition of the two lag variables sufficiently captured the remaining autocorrelation structure of the previous model. There is no peak at 0 frequency, which indicates that the trend has also been sufficiently captured. We can conclude that the residuals of this final model has been reduced to white noise.
+
+A look into the autocorrelation plots we see prominence at lag 6, which stands above the blue line. This indicates that there remains uncaptured trend yet not to the extent that we cannot conclude that the model has not been mostly reduced to white noise.
+
+```{r}
+num_rows <- nrow(sales)
+lresid<-c(rep(NA,num_rows))
+lag1resid<-lresid
+lag2resid<-lresid
+
+lag1resid[2]<-resid(model)[1]
+
+for(i in 3:num_rows){
+i1<-i-1
+i2<-i-2
+
+lag1resid[i]<-resid(model)[i1]
+lag2resid[i]<-resid(model)[i2]
+}
+```
+
+``` {r}
+sales<-data.frame(sales,lag1resid,lag2resid)
+```
+
+``` {r}
+model10 <-lm(logSales~Time+I(Time^2)+I(Time^3)+I(Time^4)+I(Time^5)+I(Time^6)+fMonth+obs203+c348+s348+Dynamic+Dynamic*fMonth+lag1resid+lag2resid, data = sales)
+```
+
+```{r}
+res3 <- resid(model10)
+spectrum(res3, span=5)
+abline(v=c(1/12,2/12,3/12,4/12,5/12,6/12),col="red",lty=2)
+abline(v=c(0.348,0.432),col="blue",lty=2)
+```
+
+``` {r}
+resid3 <- ts(res3,start=c(1992,1),freq=12)
+plot(resid3, xlab="time",ylab="residuals",main="Residuals of Model 2")
+```
+
+``` {r}
+acf(ts(res3), 37)
+```
+
+
+
+**Summary** The final model selected in part three includes the trend component, fMonth variables, one outlier dummy variable, and calendar pairs from frequency 348. We excluded the 432 calendar pair variables as they are not significant based on our F-test. 
+
+Using this model, we observed from the residual spectral plot that there remains uncaptured trend and seasonality components. We identify this by looking at the peak at low frequency (Which indicates uncaptured trend) and the peaks at the seasonal frequencies (which indicates seasonality). We concluded that the model has not reduced the residuals into white noise as the length between highest and lowest peaks of the spectral density plot is twice the upper half of the blue measuring line at the top right corner of the plot.
+
+- Added the Dynamic and Dynamic fMonth variables and concluded that they are statistically significant to our model. This means that there is dynamic seasonality present in used car sales in between 1992 and 2019.
+
+Compared the indices from years 1992-2010 to the years 2011-2019 and confirmed dynamic seasonality by looking at the indices comparison table and plot. The volatility in the percentage change of sales throughout the year is higher in 2011-2019. Specifically, used car sales increase more sharply in earlier months in the years in 2011-2019 than in 1992-2010. 
+
+Residual Analysis of the new model shows that the dynamic variables helped in capturing seasonality, as evidenced by less prominent peaks at the residual spectral plot. The peak at low frequency indicates that there is still uncaptured trend, and the length between the highest and lowest peaks still indicate that the residuals have not been reduced to white noise.
+
+- Added lag1 and lag2 residuals as variables and saw that the residual spectral plot is now flat, meaning that their addition captured the autocorrelation component and has reduced the residuals to white noise levels. A quick look at the autocorrelation function plot also shows that trend has mostly been captured in the model.

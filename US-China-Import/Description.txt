@@ -1,0 +1,2 @@
+Title: Time Series Modeling of U.S.-China Imports, 1989-2019
+Description: Using seasonal ARIMA approach to model Chinese imports to the United States between 1989 and 2019.
